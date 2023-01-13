@@ -1,12 +1,18 @@
 package com.example.fifabet
 
+import android.annotation.SuppressLint
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.viewModels
 import androidx.annotation.RequiresApi
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.*
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -15,43 +21,50 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.collectAsState
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.fifabet.db.Bahis
+import com.example.fifabet.db.BetDao
 import com.example.fifabet.db.FifaBetsDatabase
 import com.example.fifabet.db.BetRepository
 import com.example.fifabet.mvvm.HomeViewModel
 import com.example.fifabet.ui.theme.FifaBETTheme
 import com.google.gson.Gson
 import com.google.gson.JsonParser
+import dagger.hilt.android.AndroidEntryPoint
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import org.json.JSONArray
 import org.json.JSONTokener
+import java.lang.StringBuilder
 import java.util.Objects
 
-
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    val homeViewModel: HomeViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        val dao = FifaBetsDatabase.getInstance(application).betDao
         super.onCreate(savedInstanceState)
         setContent {
             FifaBETTheme {
                 // A surface container using the 'background' color from the theme
-                Home(homeViewModel = HomeViewModel(repository = BetRepository(dao = dao)))
+                Home(homeViewModel)
             }
         }
     }
@@ -119,27 +132,23 @@ fun betItem(
 }
 
 
-
 @Composable
-private fun Home(homeViewModel: HomeViewModel) {
-
-
-
-
+private fun Home(homeViewModel: HomeViewModel = hiltViewModel()) {
 
     var bet = homeViewModel.bet.collectAsState().value
     var odd = homeViewModel.odd.collectAsState().value
+    var active = homeViewModel.active.collectAsState().value
     val data = homeViewModel.bets.observeAsState().value
-    val listStore= homeViewModel.listStore.collectAsState().value
+    val listStore = homeViewModel.listStore.collectAsState().value
 
     Log.d("adsd", data.toString() + bet.toString())
 
     //val map = mutableMapOf<String, Object>()
-   // val list = listOf(Bahis("item1"), Bahis("item2"))
+    // val list = listOf(Bahis("item1"), Bahis("item2"))
     val map = mutableMapOf<String, Object>()
 
     if (data != null) {
-        data.forEach{ item ->
+        data.forEach { item ->
             map[item.id.toString()] = item as Object
         }
     }
@@ -165,11 +174,12 @@ private fun Home(homeViewModel: HomeViewModel) {
                     backgroundColor = MaterialTheme.colors.primary,
                     contentColor = Color.White,
                     shape = CircleShape,
-                   onClick = {
-                       if (data != null) {
-                           insertData(map)
-                       }
-                   }
+                    onClick = {
+                        if (data != null) {
+                            insertData(map)
+                            homeViewModel.fireRead()
+                        }
+                    }
                 ) {
                     Icon(imageVector = Icons.Filled.Add, contentDescription = "icon")
                 }
@@ -187,85 +197,22 @@ private fun Home(homeViewModel: HomeViewModel) {
             ) {
 
                 Column(modifier = Modifier.padding(10.dp)) {
-                    betItem(bet = bet,
+                    betItem(
+                        bet = bet,
                         betChange = { homeViewModel.updateBet(it) },
                         odd = odd,
                         oddChange = { homeViewModel.updateOdd(it) },
-                       )
+                    )
                     Button(
-                        onClick = {homeViewModel.saveOrUpdate()},
+                        onClick = { homeViewModel.saveOrUpdate() },
                         colors = ButtonDefaults.buttonColors(backgroundColor = MaterialTheme.colors.primary)
                     ) {
                         Text(text = "Ekle", color = Color.White)
                     }
 
 
-                    List(data)
-                    Column(
-                        modifier = Modifier
-                            .padding(10.dp)
-                            .fillMaxWidth(),
-                    ) {
-                        listStore.forEach { item->
-
-
-
-
-                            var beti:String=""
-                            var oddi:String=""
-                            item.values.forEach { i ->
-                                val obj = i
-                                val pattern = "bet=(.+), id=(.+), odd=(.+)".toRegex()
-                                val matchResult = pattern.find(obj.toString())
-                                if (matchResult != null) {
-                                     beti = matchResult.groupValues[1]
-                                    val id = matchResult.groupValues[2]
-                                     oddi = matchResult.groupValues[3]
-                                }
-                            }
-                           Log.d("ssa", item.values.toString())
-                            Card(
-                                shape = RoundedCornerShape(5),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = 5.dp),
-                                backgroundColor = MaterialTheme.colors.primaryVariant,
-                                elevation = 2.dp
-                            ) {
-
-                                Row(
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    modifier = Modifier.padding(5.dp),
-
-                                    ) {
-
-                                    val jsonArray = JSONTokener(item.values.toString()).nextValue() as JSONArray
-                                    for (i in 0 until jsonArray.length()) {
-                                        // ID
-                                        val id = jsonArray.getJSONObject(i).getString("id")
-                                        Log.i("ID: ", id)
-
-                                        // Employee Name
-                                        val bet = jsonArray.getJSONObject(i).getString("bet")
-                                        Log.i("Employee Name: ", bet)
-
-                                        // Employee Salary
-                                        val odd = jsonArray.getJSONObject(i).getString("odd")
-                                        Log.i("Employee Salary: ", odd)
-
-                                        // Employee Age
-                                        Text(text =bet)
-                                        Text(text = odd)
-
-                                        // Save data using your Model
-
-                                        // Notify the adapter
-                                    }
-
-                                }
-                            }
-                        }
-                    }
+                    List(data, homeViewModel)
+                    BetsList(listStore)
 
 
                 }
@@ -275,61 +222,19 @@ private fun Home(homeViewModel: HomeViewModel) {
     }
 }
 
-
-
-
-
+@OptIn(ExperimentalMaterialApi::class)
 @Composable
-private fun FloatButton(onClick: () -> Unit) {
-    FloatingActionButton(
-        backgroundColor = MaterialTheme.colors.primary,
-        contentColor = Color.White,
-        shape = CircleShape,
-        onClick = { onClick },
-    ) {
-        Icon(imageVector = Icons.Filled.Add, contentDescription = "icon")
-    }
-}
-
-
-@Composable
-private fun List(data: List<Bahis>?) {
-    Column(
-        modifier = Modifier
-            .padding(10.dp)
-            .fillMaxWidth(),
-    ) {
-        data?.forEach { item ->
-            Card(
-                shape = RoundedCornerShape(5),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 5.dp),
-                backgroundColor = MaterialTheme.colors.secondary,
-                elevation = 2.dp
-            ) {
-                Row(
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier.padding(5.dp),
-
-                    ) {
-                    Text(text = item.bet)
-                    Text(text = item.odd.toString())
-                }
-            }
-        }
-    }
-}
-
-/*@Composable
-private fun List2() {
+private fun BetsList(listStore: List<Map<String, Object>>) {
 
     Column(
         modifier = Modifier
             .padding(10.dp)
-            .fillMaxWidth(),
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState())
+
     ) {
-        data.forEach { item ->
+        listStore.forEach { item ->
+
             Card(
                 shape = RoundedCornerShape(5),
                 modifier = Modifier
@@ -338,16 +243,110 @@ private fun List2() {
                 backgroundColor = MaterialTheme.colors.primaryVariant,
                 elevation = 2.dp
             ) {
-                Row(
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier.padding(5.dp),
 
-                    ) {
-                  //  Text(text =q )
-                   // Text(text = item.odd.toString())
+
+                Column(
+                    verticalArrangement = Arrangement.Center,
+                    modifier = Modifier.padding(5.dp),
+                    horizontalAlignment = Alignment.Start
+                ) {
+
+
+                    val jsonArray =
+                        JSONTokener(item.values.toString()).nextValue() as JSONArray
+                    for (i in 0 until jsonArray.length()) {
+                        val checkedState = remember { mutableStateOf(true) }
+
+                        // ID
+                        val id = jsonArray.getJSONObject(i).getString("id")
+                        Log.i("ID: ", id)
+
+                        // var active = jsonArray.getJSONObject(i).getBoolean("active")
+                        // Log.i("Active: ", active.toString())
+                        // Employee Name
+                        val bet = jsonArray.getJSONObject(i).getString("bet")
+                        Log.i("Employee Name: ", bet)
+
+                        // Employee Salary
+                        val odd = jsonArray.getJSONObject(i).getString("odd")
+                        Log.i("Employee Salary: ", odd)
+
+
+                        Row(
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.background(color = Color.Black)
+                        ) {
+                            Text(text = bet)
+                            Text(text = odd)
+                            Checkbox(
+                                checked = checkedState.value,
+                                onCheckedChange = { checkedState.value = it },
+                                colors = CheckboxDefaults.colors(
+                                    checkedColor = Color.Green,
+                                    uncheckedColor = Color.Red
+                                )
+                            )
+
+                        }
+                    }
                 }
+
             }
         }
     }
 }
-*/
+
+@Composable
+fun Boxi() {
+    Box() {
+
+    }
+}
+
+
+@Composable
+private fun List(data: List<Bahis>?, homeViewModel: HomeViewModel) {
+    Column(
+        modifier = Modifier
+            .padding(10.dp)
+            .fillMaxWidth(),
+    ) {
+        data?.forEach { item ->
+            Column() {
+                BetsListCard(homeViewModel, item)
+            }
+        }
+    }
+}
+
+@SuppressLint("StateFlowValueCalledInComposition")
+@Composable
+private fun BetsListCard(
+    homeViewModel: HomeViewModel,
+    item: Bahis
+) {
+
+    Card(
+        shape = RoundedCornerShape(5),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 5.dp)
+            .clickable { homeViewModel.delete(item) },
+        backgroundColor = MaterialTheme.colors.secondary,
+        elevation = 2.dp
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier.padding(5.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(text = item.bet)
+            Text(text = item.odd.toString())
+
+
+        }
+    }
+}
+
+

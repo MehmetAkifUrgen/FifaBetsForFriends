@@ -10,26 +10,31 @@ import com.example.fifabet.db.Bahis
 import com.example.fifabet.db.BetRepository
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import javax.inject.Inject
 
-
-class HomeViewModel(private val repository: BetRepository) : ViewModel() {
+@HiltViewModel
+class HomeViewModel @Inject constructor(private val repository: BetRepository) : ViewModel() {
     val db = Firebase.firestore
     val bets = repository.bets
+
 
     private val _listStore = MutableStateFlow<List<Map<String,Object>>>(emptyList())
     private var isUpdateOrDelete = false
     private lateinit var betToUpdateOrDelete: Bahis
     private val _betList = MutableStateFlow<List<Bahis>>(emptyList())
-    private val _bet = MutableStateFlow<String>("")
-    private val _odd = MutableStateFlow<String>("")
+    private val _bet = MutableStateFlow("")
+    private val _odd = MutableStateFlow("")
+    private val _active = MutableStateFlow("false")
     val betList = _betList.asStateFlow()
     val bet = _bet.asStateFlow()
     val odd = _odd.asStateFlow()
+    val active = _active.asStateFlow()
     val listStore= _listStore.asStateFlow()
 
     private val statusMessage = MutableLiveData<Event<String>>()
@@ -39,17 +44,21 @@ class HomeViewModel(private val repository: BetRepository) : ViewModel() {
 
 
     init{
+        fireRead()
+    }
+
+     fun fireRead() {
         db.collection("bets")
             .get()
-            .addOnSuccessListener {result ->
+            .addOnSuccessListener { result ->
                 val items = arrayListOf<Any>()
                 for (document in result) {
                     Log.d("TAG", "${document.id} => ${document.data}")
                     items.add(document.data)
-                    Log.d("kav",listStore.toString())
+                    Log.d("kav", listStore.toString())
                 }
-                _listStore.value=items as List<Map<String, Object>>
-                Log.w("ss",_listStore.value.toString())
+                _listStore.value = items as List<Map<String, Object>>
+                Log.w("ss", _listStore.value.toString())
                 //    items = it.result?.toObjects(Bahis::class.java) as MutableList<Bahis>
 
 
@@ -84,8 +93,9 @@ class HomeViewModel(private val repository: BetRepository) : ViewModel() {
         } else {*/
             val bet = _bet.value!!
             val odd = _odd.value!!
+            val active = _active.value!!
             Log.d("data",bet+odd)
-            insert(Bahis(0, bet, odd.toFloat()))
+            insert(Bahis(0, bet, odd.toFloat(),active))
 
 
     }

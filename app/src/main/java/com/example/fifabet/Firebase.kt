@@ -1,11 +1,11 @@
 package com.example.fifabet
 
+import android.content.Context
 import android.util.Log
-import androidx.lifecycle.Observer
-import com.example.fifabet.db.Bahis
+import android.widget.Toast
+import androidx.compose.runtime.Composable
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
-import java.util.Objects
 
 val db = Firebase.firestore
 
@@ -15,15 +15,21 @@ val map = mutableMapOf<String, Object>()
 
 fun insertData(userData: MutableMap<String, Object>){
     if (userData != null) {
-        db.collection("bets")
-            .add(userData)
-            .addOnSuccessListener { documentReference ->
-                Log.d("data","DocumentSnapshot added with ID: ${documentReference.id}")
+        try {
+            db.collection("bets")
+                .add(userData)
+                .addOnSuccessListener { documentReference ->
+                    Log.d("data","DocumentSnapshot added with ID: ${documentReference.id}")
 
-            }
-            .addOnFailureListener { e ->
-                Log.w("Error adding document", e)
-            }
+                }
+                .addOnFailureListener { e ->
+                    Log.w("Error adding document", e)
+                }
+        } catch (e:Exception){
+            val context = null
+            Toast.makeText(context,"${e.toString()}",Toast.LENGTH_LONG)
+        }
+
     }
 }
 

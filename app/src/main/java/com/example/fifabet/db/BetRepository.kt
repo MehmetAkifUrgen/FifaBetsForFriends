@@ -1,6 +1,8 @@
 package com.example.fifabet.db
 
-class BetRepository(private val dao: BetDao) {
+import javax.inject.Inject
+
+class BetRepository @Inject constructor(private val dao: BetDao) {
 
     val bets = dao.getAllBets()
 
