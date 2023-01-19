@@ -13,10 +13,10 @@ val db = Firebase.firestore
 val map = mutableMapOf<String, Object>()
 
 
-fun insertData(userData: MutableMap<String, Object>){
+fun insertData(userData: MutableMap<String, Object>,room:String){
     if (userData != null) {
         try {
-            db.collection("bets")
+            db.collection(room)
                 .add(userData)
                 .addOnSuccessListener { documentReference ->
                     Log.d("data","DocumentSnapshot added with ID: ${documentReference.id}")

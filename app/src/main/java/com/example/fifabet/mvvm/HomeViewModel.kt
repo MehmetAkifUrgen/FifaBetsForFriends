@@ -30,12 +30,17 @@ class HomeViewModel @Inject constructor(private val repository: BetRepository) :
     private val _betList = MutableStateFlow<List<Bahis>>(emptyList())
     private val _bet = MutableStateFlow("")
     private val _odd = MutableStateFlow("")
+    private val _room = MutableStateFlow("")
     private val _active = MutableStateFlow("false")
+    private  val _isError= MutableStateFlow(false)
     val betList = _betList.asStateFlow()
     val bet = _bet.asStateFlow()
     val odd = _odd.asStateFlow()
+    val isError=_isError.asStateFlow()
+    val room = _room.asStateFlow()
     val active = _active.asStateFlow()
     val listStore= _listStore.asStateFlow()
+
 
     private val statusMessage = MutableLiveData<Event<String>>()
 
@@ -43,12 +48,18 @@ class HomeViewModel @Inject constructor(private val repository: BetRepository) :
         get() = statusMessage
 
 
-    init{
-        fireRead()
+    init {
+
     }
 
-     fun fireRead() {
-        db.collection("bets")
+    fun validate(){
+        _isError.value = !(_bet.value.isNotEmpty() && _odd.value.isNotEmpty())
+    }
+
+
+
+     fun fireRead(room:String) {
+        db.collection(room)
             .get()
             .addOnSuccessListener { result ->
                 val items = arrayListOf<Any>()
@@ -75,6 +86,13 @@ class HomeViewModel @Inject constructor(private val repository: BetRepository) :
             _bet.value = input
         }
     }
+    fun updateRoom(input: String) {
+        viewModelScope.launch {
+            // async operation
+            // DO NOT DO THIS. ANTI-PATTERN - updating after an async op
+            _room.value = input
+        }
+    }
 
     fun updateOdd(input: String) {
         viewModelScope.launch {
@@ -95,7 +113,16 @@ class HomeViewModel @Inject constructor(private val repository: BetRepository) :
             val odd = _odd.value!!
             val active = _active.value!!
             Log.d("data",bet+odd)
+        if (bet.isNotEmpty() && odd.isNotEmpty()){
             insert(Bahis(0, bet, odd.toFloat(),active))
+            _bet.value=""
+            _odd.value=""
+            _isError.value=false
+        }
+        else{
+            _isError.value=true
+        }
+
 
 
     }
