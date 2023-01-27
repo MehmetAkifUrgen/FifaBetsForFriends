@@ -9,7 +9,7 @@ import androidx.compose.ui.graphics.Color
 import com.example.fifabet.mvvm.HomeViewModel
 
 @Composable
-fun insertButton(homeViewModel: HomeViewModel) {
+fun  insertButton(homeViewModel: HomeViewModel) {
 
     Button(
         onClick = { homeViewModel.saveOrUpdate() },

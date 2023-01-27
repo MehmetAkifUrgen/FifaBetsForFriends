@@ -8,6 +8,8 @@ import androidx.lifecycle.viewModelScope
 import com.example.fifabet.Event
 import com.example.fifabet.db.Bahis
 import com.example.fifabet.db.BetRepository
+import com.example.fifabet.db.ByRoom
+import com.example.fifabet.db.Kupon
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -21,10 +23,11 @@ import javax.inject.Inject
 @HiltViewModel
 class HomeViewModel @Inject constructor(private val repository: BetRepository) : ViewModel() {
     val db = Firebase.firestore
-    val bets = repository.bets
+   val bets = repository.bets
+    val byRooms = repository.byRooms
+    val kupons= repository.kupons
 
-
-    private val _listStore = MutableStateFlow<List<Map<String,Object>>>(emptyList())
+    private val _listStore = MutableStateFlow<List<Map<String, Object>>>(emptyList())
     private var isUpdateOrDelete = false
     private lateinit var betToUpdateOrDelete: Bahis
     private val _betList = MutableStateFlow<List<Bahis>>(emptyList())
@@ -32,14 +35,14 @@ class HomeViewModel @Inject constructor(private val repository: BetRepository) :
     private val _odd = MutableStateFlow("")
     private val _room = MutableStateFlow("")
     private val _active = MutableStateFlow("false")
-    private  val _isError= MutableStateFlow(false)
+    private val _isError = MutableStateFlow(false)
     val betList = _betList.asStateFlow()
     val bet = _bet.asStateFlow()
     val odd = _odd.asStateFlow()
-    val isError=_isError.asStateFlow()
+    val isError = _isError.asStateFlow()
     val room = _room.asStateFlow()
     val active = _active.asStateFlow()
-    val listStore= _listStore.asStateFlow()
+    val listStore = _listStore.asStateFlow()
 
 
     private val statusMessage = MutableLiveData<Event<String>>()
@@ -52,13 +55,14 @@ class HomeViewModel @Inject constructor(private val repository: BetRepository) :
 
     }
 
-    fun validate(){
+    fun validate() {
         _isError.value = !(_bet.value.isNotEmpty() && _odd.value.isNotEmpty())
     }
 
 
 
-     fun fireRead(room:String) {
+
+    fun fireRead(room: String) {
         db.collection(room)
             .get()
             .addOnSuccessListener { result ->
@@ -86,6 +90,7 @@ class HomeViewModel @Inject constructor(private val repository: BetRepository) :
             _bet.value = input
         }
     }
+
     fun updateRoom(input: String) {
         viewModelScope.launch {
             // async operation
@@ -102,29 +107,25 @@ class HomeViewModel @Inject constructor(private val repository: BetRepository) :
             _odd.value = input
         }
     }
+    fun insertByRoom(room:String,data:List<Bahis>){
+        Log.d("data2",data.toString())
+        insertByRoom(ByRoom(0,data,room))
+    }
+
 
     fun saveOrUpdate() {
-       /* if (isUpdateOrDelete) {
-            betToUpdateOrDelete.bet = _bet.value!!
-            betToUpdateOrDelete.odd = _odd.value.toFloat()!!
-            update(betToUpdateOrDelete)
-        } else {*/
-            val bet = _bet.value!!
-            val odd = _odd.value!!
-            val active = _active.value!!
-            Log.d("data",bet+odd)
-        if (bet.isNotEmpty() && odd.isNotEmpty()){
-            insert(Bahis(0, bet, odd.toFloat(),active))
-            _bet.value=""
-            _odd.value=""
-            _isError.value=false
+        val bet = _bet.value!!
+        val odd = _odd.value!!
+        val active = _active.value!!
+        Log.d("data", bet + odd)
+        if (bet.isNotEmpty() && odd.isNotEmpty()) {
+            insert(Bahis(0, bet, odd.toFloat(), active))
+            _bet.value = ""
+            _odd.value = ""
+            _isError.value = false
+        } else {
+            _isError.value = true
         }
-        else{
-            _isError.value=true
-        }
-
-
-
     }
 
     fun clearAllOrDelete() {
@@ -139,6 +140,19 @@ class HomeViewModel @Inject constructor(private val repository: BetRepository) :
         repository.insert(bet)
         withContext(Dispatchers.Main) {
             statusMessage.value = Event("Bet Inserted Successfully!")
+        }
+    }
+
+    fun insertByRoom(byRoom: ByRoom) = viewModelScope.launch(Dispatchers.IO) {
+        repository.insertByRoom(byRoom)
+        withContext(Dispatchers.Main) {
+            statusMessage.value = Event("ByRoom Inserted Successfully!")
+        }
+    }
+    fun insertKupon(kupon: Kupon) = viewModelScope.launch(Dispatchers.IO) {
+        repository.insertKupon(kupon)
+        withContext(Dispatchers.Main) {
+            statusMessage.value = Event("Kupon Inserted Successfully!")
         }
     }
 
@@ -163,6 +177,12 @@ class HomeViewModel @Inject constructor(private val repository: BetRepository) :
             // saveOrUpdateButtonText.value = "Save"
             //clearAllOrDeleteButtonText.value = "Clear All"
             statusMessage.value = Event("Bet Deleted Successfully!")
+        }
+    }
+    fun deleteKupon(kupon: Kupon) = viewModelScope.launch(Dispatchers.IO) {
+        repository.deleteKupon(kupon)
+        withContext(Dispatchers.Main) {
+            statusMessage.value = Event("Kupon Deleted Successfully!")
         }
     }
 
