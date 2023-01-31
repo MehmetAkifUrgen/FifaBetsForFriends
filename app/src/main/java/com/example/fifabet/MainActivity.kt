@@ -20,13 +20,17 @@ import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.paint
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.layout.AlignmentLine
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.ExperimentalUnitApi
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -117,6 +121,7 @@ private fun Home(homeViewModel: HomeViewModel = hiltViewModel()) {
                             insertData(map, room)
                             homeViewModel.fireRead(room)
                             homeViewModel.insertByRoom(room, data)
+                            homeViewModel.clearAll()
                         }
                     }) {
                     Icon(imageVector = Icons.Filled.Add, contentDescription = "icon")
@@ -194,39 +199,59 @@ fun KuponList(
                     .fillMaxWidth()
                     .padding(10.dp)
             ) {
-                Box {
-                    Image(
-                        painter = painterResource(id = R.drawable.paper2),
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .matchParentSize()
-                            .zIndex(1f),
-                        alpha = 0.4f
+                Card() {
+                    /*  Image(
+                          painter = painterResource(id = R.drawable.paper2),
+                          contentDescription = null,
+                          contentScale = ContentScale.Crop,
+                          modifier = Modifier
+                              .matchParentSize()
+                              .zIndex(1f),
+                          alpha = 0.4f
 
-                    )
+                      )*/
 
                     Row(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         modifier = Modifier
                             .fillMaxWidth()
                             .shadow(2.dp)
-                            .padding(5.dp)
+
 
                     ) {
                         Column(
-
+                            modifier = Modifier
+                                .paint(
+                                    painter = painterResource(id = R.drawable.paper2),
+                                    contentScale = ContentScale.Crop
+                                )
                         ) {
-                            Text(
-                                text = "Kupon" + it.id,
-                                fontSize = 21.sp,
-                                fontFamily = FontFamily.Monospace,
-                                color = MaterialTheme.colors.primary
-                            )
+                            Row(
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(5.dp)
+                            ) {
+                                Text(
+                                    text = "Kupon" + it.id,
+                                    fontSize = 21.sp,
+                                    fontFamily = FontFamily.Monospace,
+                                    color = Color.Black
+                                )
+                                Icon(
+                                    imageVector = Icons.Default.Delete,
+                                    contentDescription = "delete",
+                                    tint = Color.Red,
+                                    modifier = Modifier
+                                        .clickable {
+                                            homeViewModel.deleteKupon(it)
+                                        }
+                                )
+                            }
                             it.kupons?.forEach {
                                 Row(
                                     modifier = Modifier
-                                        .fillMaxWidth(),
+                                        .fillMaxWidth().padding(5.dp),
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 )
                                 {
@@ -242,19 +267,9 @@ fun KuponList(
                                     )
                                 }
                             }
+
                         }
-                        Column(modifier = Modifier.zIndex(2f)) {
-                            Icon(
-                                imageVector = Icons.Default.Delete,
-                                tint = Color.Red,
-                                contentDescription = "Delete",
-                                modifier = Modifier
-                                    .clickable {
-                                        homeViewModel.deleteKupon(it)
-                                    }
-                                    .zIndex(2f)
-                            )
-                        }
+
                     }
                 }
 
