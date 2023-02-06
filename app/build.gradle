@@ -52,7 +52,8 @@ android {
 
 dependencies {
 
-
+    def material3_version = "1.0.1"
+    implementation "androidx.compose.material3:material3:$material3_version"
 
     implementation 'com.google.firebase:firebase-firestore-ktx:24.4.1'
     def nav_version = "2.5.3"

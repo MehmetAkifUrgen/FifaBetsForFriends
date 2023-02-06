@@ -33,12 +33,14 @@ class HomeViewModel @Inject constructor(private val repository: BetRepository) :
     private val _betList = MutableStateFlow<List<Bahis>>(emptyList())
     private val _bet = MutableStateFlow("")
     private val _odd = MutableStateFlow("")
+    private val _search = MutableStateFlow("")
     private val _room = MutableStateFlow("")
     private val _active = MutableStateFlow("false")
     private val _isError = MutableStateFlow(false)
     val betList = _betList.asStateFlow()
     val bet = _bet.asStateFlow()
     val odd = _odd.asStateFlow()
+    val search= _search.asStateFlow()
     val isError = _isError.asStateFlow()
     val room = _room.asStateFlow()
     val active = _active.asStateFlow()
@@ -63,24 +65,26 @@ class HomeViewModel @Inject constructor(private val repository: BetRepository) :
 
 
     fun fireRead(room: String) {
-        db.collection(room)
-            .get()
-            .addOnSuccessListener { result ->
-                val items = arrayListOf<Any>()
-                for (document in result) {
-                    Log.d("TAG", "${document.id} => ${document.data}")
-                    items.add(document.data)
-                    Log.d("kav", listStore.toString())
-                }
-                _listStore.value = items as List<Map<String, Object>>
-                Log.w("ss", _listStore.value.toString())
-                //    items = it.result?.toObjects(Bahis::class.java) as MutableList<Bahis>
+       viewModelScope.launch{
+           db.collection(room)
+               .get()
+               .addOnSuccessListener { result ->
+                   val items = arrayListOf<Any>()
+                   for (document in result) {
+                       Log.d("TAG", "${document.id} => ${document.data}")
+                       items.add(document.data)
+                       Log.d("kav", listStore.toString())
+                   }
+                   _listStore.value = items as List<Map<String, Object>>
+                   Log.w("ss", _listStore.value.toString())
+                   //    items = it.result?.toObjects(Bahis::class.java) as MutableList<Bahis>
 
 
-            }
-            .addOnFailureListener { exception ->
-                Log.w("err", "Error getting documents.", exception)
-            }
+               }
+               .addOnFailureListener { exception ->
+                   Log.w("err", "Error getting documents.", exception)
+               }
+       }
     }
 
     fun updateBet(input: String) {
@@ -96,6 +100,13 @@ class HomeViewModel @Inject constructor(private val repository: BetRepository) :
             // async operation
             // DO NOT DO THIS. ANTI-PATTERN - updating after an async op
             _room.value = input
+        }
+    }
+    fun updateSearch(input: String) {
+        viewModelScope.launch {
+            // async operation
+            // DO NOT DO THIS. ANTI-PATTERN - updating after an async op
+            _search.value = input
         }
     }
 
